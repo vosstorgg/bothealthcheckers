@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "railway": "node index.js"
+    "railway": "node index.js",
+    "get-chat-id": "node get-chat-id.js"
   },
   "dependencies": {
     "node-cron": "^3.0.3",
