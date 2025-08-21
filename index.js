@@ -7,7 +7,7 @@ const http = require('http');
 // Конфигурация
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const CHECK_INTERVAL = process.env.CHECK_INTERVAL || '*/5 * * * *'; // Каждые 5 минут по умолчанию
+const CHECK_INTERVAL = process.env.CHECK_INTERVAL || '0 * * * *'; // Каждый час по умолчанию
 
 // Список ботов для мониторинга
 const BOTS = [

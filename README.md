@@ -4,9 +4,9 @@
 
 ## 🎯 Функциональность
 
-- ✅ Автоматическая проверка здоровья ботов каждые 5 минут
+- ✅ Автоматическая проверка здоровья ботов каждый час
 - 📱 Уведомления в Telegram при обнаружении проблем
-- 🔄 Мониторинг 3 ботов: Dream Sense, Dream Sense Test, Valiant Grace
+- 🔄 Мониторинг 3 ботов: Daily Bot Test, Dream Sense, Dream Sense Test
 - ⚡ Быстрая диагностика с таймаутом 10 секунд
 - 📊 Детальная статистика и логирование
 
@@ -41,12 +41,12 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
 
 # Bot URLs для мониторинга
+DAILY_BOT_TEST_URL=https://dailybottest.up.railway.app/health
 DREAM_SENSE_BOT_URL=https://dream-sense-bot.railway.app/health
 DREAM_SENSE_TEST_BOT_URL=https://dream-sense-test-bot.railway.app/health
-VALIANT_GRACE_BOT_URL=https://valiant-grace.railway.app/health
 
 # Интервал проверки (cron формат)
-CHECK_INTERVAL=*/5 * * * *  # Каждые 5 минут
+CHECK_INTERVAL=0 * * * *  # Каждый час
 ```
 
 ### 4. Запуск
@@ -78,10 +78,10 @@ npm start
 |------------|----------|---------|
 | `TELEGRAM_BOT_TOKEN` | Токен вашего Telegram бота | `123456789:ABCdefGHIjklMNOpqrsTUVwxyz` |
 | `TELEGRAM_CHAT_ID` | ID чата для уведомлений | `-1001234567890` |
+| `DAILY_BOT_TEST_URL` | URL для проверки Daily Bot Test | `https://dailybottest.up.railway.app/health` |
 | `DREAM_SENSE_BOT_URL` | URL для проверки Dream Sense бота | `https://dream-sense-bot.railway.app/health` |
 | `DREAM_SENSE_TEST_BOT_URL` | URL для проверки Dream Sense Test бота | `https://dream-sense-test-bot.railway.app/health` |
-| `VALIANT_GRACE_BOT_URL` | URL для проверки Valiant Grace бота | `https://valiant-grace.railway.app/health` |
-| `CHECK_INTERVAL` | Интервал проверки в cron формате | `*/5 * * * *` (каждые 5 минут) |
+| `CHECK_INTERVAL` | Интервал проверки в cron формате | `0 * * * *` (каждый час) |
 
 ### Cron формат
 
@@ -96,7 +96,8 @@ npm start
 ```
 
 **Примеры:**
-- `*/5 * * * *` - каждые 5 минут
+- `0 * * * *` - каждый час
+- `*/30 * * * *` - каждые 30 минут
 - `0 */2 * * *` - каждые 2 часа
 - `0 9 * * *` - каждый день в 9:00
 
