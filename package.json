@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "railway": "node index.js"
   },
   "dependencies": {
     "node-cron": "^3.0.3",

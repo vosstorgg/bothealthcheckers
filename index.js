@@ -2,6 +2,7 @@ require('dotenv').config();
 const cron = require('node-cron');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
+const http = require('http');
 
 // Конфигурация
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -174,6 +175,43 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (error) => {
   console.error('Необработанное исключение:', error);
   process.exit(1);
+});
+
+// Создаем HTTP сервер для health check
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'healthy',
+      service: 'Bot Health Monitor',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      bots: BOTS.length
+    }));
+  } else if (req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(`
+      <html>
+        <head><title>Bot Health Monitor</title></head>
+        <body>
+          <h1>🤖 Bot Health Monitor</h1>
+          <p>Сервис мониторинга здоровья ботов работает!</p>
+          <p><a href="/health">Health Check</a></p>
+          <p>Время: ${new Date().toLocaleString('ru-RU')}</p>
+        </body>
+      </html>
+    `);
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+});
+
+// Запускаем HTTP сервер
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🌐 HTTP сервер запущен на порту ${PORT}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
 });
 
 // Запуск приложения
