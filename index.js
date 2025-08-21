@@ -101,8 +101,8 @@ async function sendTelegramNotification(message) {
 // Функция для получения времени по МСК
 function getMoscowTime() {
   const now = new Date();
-  const moscowTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
-  return moscowTime.toLocaleString('ru-RU', {
+  const utcTime = now.toISOString();
+  const moscowTime = now.toLocaleString('ru-RU', {
     timeZone: 'Europe/Moscow',
     year: 'numeric',
     month: '2-digit',
@@ -112,6 +112,12 @@ function getMoscowTime() {
     second: '2-digit',
     hour12: false
   });
+  
+  // Логируем для отладки
+  console.log(`🕐 Время UTC: ${utcTime}`);
+  console.log(`🕐 Время МСК: ${moscowTime}`);
+  
+  return moscowTime;
 }
 
 // Функция для мониторинга всех ботов
@@ -139,31 +145,39 @@ async function monitorAllBots() {
   console.log(`⚠️ Предупреждения: ${warnings.length}`);
   console.log(`❌ Ошибки: ${errors.length}`);
   
-  // Отправляем уведомления только при проблемах
-  if (warnings.length > 0 || errors.length > 0) {
-    let message = `🚨 <b>Проблемы с ботами обнаружены!</b>\n\n`;
-    
-    if (errors.length > 0) {
-      message += `❌ <b>Критические ошибки:</b>\n`;
-      errors.forEach(error => {
-        message += `• <b>${error.bot}</b>: ${error.error}\n`;
-      });
-      message += '\n';
-    }
-    
-    if (warnings.length > 0) {
-      message += `⚠️ <b>Предупреждения:</b>\n`;
-      warnings.forEach(warning => {
-        message += `• <b>${warning.bot}</b>: HTTP ${warning.response}\n`;
-      });
-    }
-    
-    message += `\n🕐 Время проверки: ${moscowTime} (МСК)`;
-    
-    await sendTelegramNotification(message);
-  } else {
-    console.log('🎉 Все боты работают нормально!');
+  // Отправляем уведомления всегда (и при проблемах, и при успехе)
+  let message = `📊 <b>Отчет о проверке ботов</b>\n\n`;
+  message += `✅ <b>Работают:</b> ${healthy.length}\n`;
+  message += `⚠️ <b>Предупреждения:</b> ${warnings.length}\n`;
+  message += `❌ <b>Ошибки:</b> ${errors.length}\n\n`;
+  
+  if (errors.length > 0) {
+    message += `❌ <b>Критические ошибки:</b>\n`;
+    errors.forEach(error => {
+      message += `• <b>${error.bot}</b>: ${error.error}\n`;
+    });
+    message += '\n';
   }
+  
+  if (warnings.length > 0) {
+    message += `⚠️ <b>Предупреждения:</b>\n`;
+    warnings.forEach(warning => {
+      message += `• <b>${warning.bot}</b>: HTTP ${warning.response}\n`;
+    });
+    message += '\n';
+  }
+  
+  if (healthy.length > 0) {
+    message += `✅ <b>Работают нормально:</b>\n`;
+    healthy.forEach(bot => {
+      message += `• <b>${bot.bot}</b>\n`;
+    });
+    message += '\n';
+  }
+  
+  message += `🕐 Время проверки: ${moscowTime} (МСК)`;
+  
+  await sendTelegramNotification(message);
 }
 
 // Функция для отправки тестового сообщения
