@@ -12,6 +12,11 @@ const CHECK_INTERVAL = process.env.CHECK_INTERVAL || '*/5 * * * *'; // Кажд�
 // Список ботов для мониторинга
 const BOTS = [
   {
+    name: 'Daily Bot Test (Web)',
+    url: process.env.DAILY_BOT_TEST_URL || 'https://dailybottest.up.railway.app/health',
+    description: 'Daily Bot Test Web сервис на Railway'
+  },
+  {
     name: 'Dream Sense Bot',
     url: process.env.DREAM_SENSE_BOT_URL || 'https://dream-sense-bot.railway.app/health',
     description: 'Dream Sense Bot на Railway'
@@ -20,11 +25,6 @@ const BOTS = [
     name: 'Dream Sense Test Bot',
     url: process.env.DREAM_SENSE_TEST_BOT_URL || 'https://dream-sense-test-bot.railway.app/health',
     description: 'Dream Sense Test Bot на Railway'
-  },
-  {
-    name: 'Valiant Grace Bot',
-    url: process.env.VALIANT_GRACE_BOT_URL || 'https://valiant-grace.railway.app/health',
-    description: 'Valiant Grace Bot на Railway'
   }
 ];
 
@@ -54,12 +54,31 @@ async function checkBotHealth(bot) {
       return { status: 'warning', bot: bot.name, response: response.status };
     }
   } catch (error) {
-    console.error(`❌ Ошибка при проверке ${bot.name}:`, error.message);
+    // Улучшенная обработка ошибок
+    let errorMessage = error.message;
+    let errorCode = error.code || 'UNKNOWN';
+    
+    if (error.code === 'ECONNREFUSED') {
+      errorMessage = 'Соединение отказано - сервис недоступен';
+      errorCode = 'CONNECTION_REFUSED';
+    } else if (error.code === 'ENOTFOUND') {
+      errorMessage = 'Домен не найден - неправильный URL';
+      errorCode = 'DOMAIN_NOT_FOUND';
+    } else if (error.code === 'ETIMEDOUT') {
+      errorMessage = 'Таймаут соединения - сервис не отвечает';
+      errorCode = 'TIMEOUT';
+    } else if (error.response) {
+      // Сервер ответил с ошибкой
+      errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
+      errorCode = `HTTP_${error.response.status}`;
+    }
+    
+    console.error(`❌ Ошибка при проверке ${bot.name}: ${errorMessage} (${errorCode})`);
     return { 
       status: 'error', 
       bot: bot.name, 
-      error: error.message,
-      code: error.code || 'UNKNOWN'
+      error: errorMessage,
+      code: errorCode
     };
   }
 }
