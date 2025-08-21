@@ -79,9 +79,26 @@ async function sendTelegramNotification(message) {
   }
 }
 
+// Функция для получения времени по МСК
+function getMoscowTime() {
+  const now = new Date();
+  const moscowTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+  return moscowTime.toLocaleString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+}
+
 // Функция для мониторинга всех ботов
 async function monitorAllBots() {
-  console.log(`\n🕐 Начинаю проверку ботов: ${new Date().toLocaleString('ru-RU')}`);
+  const moscowTime = getMoscowTime();
+  console.log(`\n🕐 Начинаю проверку ботов: ${moscowTime} (МСК)`);
   
   const results = [];
   
@@ -122,7 +139,7 @@ async function monitorAllBots() {
       });
     }
     
-    message += `\n🕐 Время проверки: ${new Date().toLocaleString('ru-RU')}`;
+    message += `\n🕐 Время проверки: ${moscowTime} (МСК)`;
     
     await sendTelegramNotification(message);
   } else {
@@ -138,7 +155,9 @@ async function sendTestMessage() {
   }
   
   try {
-    await bot.sendMessage(TELEGRAM_CHAT_ID, '🧪 <b>Тестовое сообщение</b>\n\nБот мониторинга запущен и работает!', { parse_mode: 'HTML' });
+    const moscowTime = getMoscowTime();
+    const message = `🧪 <b>Тестовое сообщение</b>\n\nБот мониторинга запущен и работает!\n\n🕐 Время запуска: ${moscowTime} (МСК)`;
+    await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'HTML' });
     console.log('Тестовое сообщение отправлено');
   } catch (error) {
     console.error('Ошибка при отправке тестового сообщения:', error.message);
@@ -147,11 +166,13 @@ async function sendTestMessage() {
 
 // Основная функция запуска
 async function startMonitoring() {
+  const moscowTime = getMoscowTime();
   console.log('🚀 Запуск мониторинга ботов...');
   console.log(`📱 Telegram бот: ${TELEGRAM_BOT_TOKEN ? 'Настроен' : 'Не настроен'}`);
   console.log(`👥 Chat ID: ${TELEGRAM_CHAT_ID || 'Не указан'}`);
   console.log(`⏰ Интервал проверки: ${CHECK_INTERVAL}`);
   console.log(`🤖 Ботов для мониторинга: ${BOTS.length}`);
+  console.log(`🕐 Время запуска: ${moscowTime} (МСК)`);
   
   // Отправляем тестовое сообщение при запуске
   await sendTestMessage();
@@ -180,15 +201,18 @@ process.on('uncaughtException', (error) => {
 // Создаем HTTP сервер для health check
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
+    const moscowTime = getMoscowTime();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'healthy',
       service: 'Bot Health Monitor',
       timestamp: new Date().toISOString(),
+      moscowTime: moscowTime,
       uptime: process.uptime(),
       bots: BOTS.length
     }));
   } else if (req.url === '/') {
+    const moscowTime = getMoscowTime();
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(`
       <html>
@@ -197,7 +221,8 @@ const server = http.createServer((req, res) => {
           <h1>🤖 Bot Health Monitor</h1>
           <p>Сервис мониторинга здоровья ботов работает!</p>
           <p><a href="/health">Health Check</a></p>
-          <p>Время: ${new Date().toLocaleString('ru-RU')}</p>
+          <p>Время (МСК): ${moscowTime}</p>
+          <p>Время (UTC): ${new Date().toISOString()}</p>
         </body>
       </html>
     `);
