@@ -7,14 +7,15 @@ const http = require('http');
 // Конфигурация
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const CHECK_INTERVAL = process.env.CHECK_INTERVAL || '0 * * * *'; // Каждый час по умолчанию
+const DAILY_REPORT_TIME = '0 19 * * *'; // Ежедневно в 19:00 МСК
+const HOURLY_CHECK_TIME = '0 * * * *'; // Каждый час
 
 // Список ботов для мониторинга
 const BOTS = [
   {
-    name: 'Daily Bot Test (Web)',
-    url: process.env.DAILY_BOT_TEST_URL || 'https://dailybottest.up.railway.app/health',
-    description: 'Daily Bot Test Web сервис на Railway'
+    name: 'EphemerisDecoder',
+    url: process.env.EPHEMERIS_DECODER_URL || 'https://ephemerisdecoder.up.railway.app/health',
+    description: 'EphemerisDecoder сервис на Railway'
   },
   {
     name: 'Dream Sense Bot',
@@ -145,11 +146,19 @@ async function monitorAllBots() {
   console.log(`⚠️ Предупреждения: ${warnings.length}`);
   console.log(`❌ Ошибки: ${errors.length}`);
   
-  // Отправляем уведомления всегда (и при проблемах, и при успехе)
-  let message = `📊 <b>Отчет о проверке ботов</b>\n\n`;
-  message += `✅ <b>Работают:</b> ${healthy.length}\n`;
+  return { results, healthy, warnings, errors, moscowTime };
+}
+
+// Функция для отправки ежедневного полного отчета
+async function sendDailyReport() {
+  console.log('📅 Отправляю ежедневный полный отчет...');
+  
+  const { results, healthy, warnings, errors, moscowTime } = await monitorAllBots();
+  
+  let message = `📅 <b>ЕЖЕДНЕВНЫЙ ОТЧЕТ О СОСТОЯНИИ БОТОВ</b>\n\n`;
+  message += `✅ <b>Работают нормально:</b> ${healthy.length}\n`;
   message += `⚠️ <b>Предупреждения:</b> ${warnings.length}\n`;
-  message += `❌ <b>Ошибки:</b> ${errors.length}\n\n`;
+  message += `❌ <b>Критические ошибки:</b> ${errors.length}\n\n`;
   
   if (errors.length > 0) {
     message += `❌ <b>Критические ошибки:</b>\n`;
@@ -175,9 +184,46 @@ async function monitorAllBots() {
     message += '\n';
   }
   
-  message += `🕐 Время проверки: ${moscowTime} (МСК)`;
+  message += `🕐 Время отчета: ${moscowTime} (МСК)\n`;
+  message += `📊 Всего проверено сервисов: ${results.length}`;
   
   await sendTelegramNotification(message);
+  console.log('✅ Ежедневный отчет отправлен');
+}
+
+// Функция для отправки уведомлений только об ошибках
+async function sendErrorNotifications() {
+  console.log('🔍 Проверяю на наличие ошибок...');
+  
+  const { results, healthy, warnings, errors, moscowTime } = await monitorAllBots();
+  
+  // Отправляем уведомление только если есть ошибки или предупреждения
+  if (errors.length > 0 || warnings.length > 0) {
+    let message = `🚨 <b>ОБНАРУЖЕНЫ ПРОБЛЕМЫ</b>\n\n`;
+    
+    if (errors.length > 0) {
+      message += `❌ <b>Критические ошибки:</b>\n`;
+      errors.forEach(error => {
+        message += `• <b>${error.bot}</b>: ${error.error}\n`;
+      });
+      message += '\n';
+    }
+    
+    if (warnings.length > 0) {
+      message += `⚠️ <b>Предупреждения:</b>\n`;
+      warnings.forEach(warning => {
+        message += `• <b>${warning.bot}</b>: HTTP ${warning.response}\n`;
+      });
+      message += '\n';
+    }
+    
+    message += `🕐 Время проверки: ${moscowTime} (МСК)`;
+    
+    await sendTelegramNotification(message);
+    console.log('🚨 Уведомление об ошибках отправлено');
+  } else {
+    console.log('✅ Все сервисы работают нормально, уведомление не отправляю');
+  }
 }
 
 // Функция для отправки тестового сообщения
@@ -189,7 +235,7 @@ async function sendTestMessage() {
   
   try {
     const moscowTime = getMoscowTime();
-    const message = `🧪 <b>Тестовое сообщение</b>\n\nБот мониторинга запущен и работает!\n\n🕐 Время запуска: ${moscowTime} (МСК)`;
+    const message = `🧪 <b>Тестовое сообщение</b>\n\nБот мониторинга запущен и работает!\n\n🕐 Время запуска: ${moscowTime} (МСК)\n\n📅 <b>Режим работы:</b>\n• Ежедневный полный отчет в 19:00 МСК\n• Ежечасные проверки (уведомления только при ошибках)`;
     await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'HTML' });
     console.log('Тестовое сообщение отправлено');
   } catch (error) {
@@ -203,7 +249,8 @@ async function startMonitoring() {
   console.log('🚀 Запуск мониторинга ботов...');
   console.log(`📱 Telegram бот: ${TELEGRAM_BOT_TOKEN ? 'Настроен' : 'Не настроен'}`);
   console.log(`👥 Chat ID: ${TELEGRAM_CHAT_ID || 'Не указан'}`);
-  console.log(`⏰ Интервал проверки: ${CHECK_INTERVAL}`);
+  console.log(`📅 Ежедневный отчет: ${DAILY_REPORT_TIME} (19:00 МСК)`);
+  console.log(`⏰ Ежечасные проверки: ${HOURLY_CHECK_TIME}`);
   console.log(`🤖 Ботов для мониторинга: ${BOTS.length}`);
   console.log(`🕐 Время запуска: ${moscowTime} (МСК)`);
   
@@ -213,12 +260,21 @@ async function startMonitoring() {
   // Запускаем первую проверку
   await monitorAllBots();
   
-  // Настраиваем cron для периодических проверок
-  cron.schedule(CHECK_INTERVAL, async () => {
-    await monitorAllBots();
+  // Настраиваем cron для ежедневного полного отчета в 19:00 МСК
+  cron.schedule(DAILY_REPORT_TIME, async () => {
+    console.log('📅 Запуск ежедневного отчета...');
+    await sendDailyReport();
+  });
+  
+  // Настраиваем cron для ежечасных проверок (только ошибки)
+  cron.schedule(HOURLY_CHECK_TIME, async () => {
+    console.log('⏰ Запуск ежечасной проверки...');
+    await sendErrorNotifications();
   });
   
   console.log('✅ Мониторинг запущен и работает!');
+  console.log('📅 Ежедневный полный отчет будет отправляться в 19:00 МСК');
+  console.log('⏰ Ежечасные проверки будут отправлять уведомления только при ошибках');
 }
 
 // Обработка ошибок
@@ -242,7 +298,11 @@ const server = http.createServer((req, res) => {
       timestamp: new Date().toISOString(),
       moscowTime: moscowTime,
       uptime: process.uptime(),
-      bots: BOTS.length
+      bots: BOTS.length,
+      schedule: {
+        dailyReport: '19:00 МСК',
+        hourlyChecks: 'Каждый час (только ошибки)'
+      }
     }));
   } else if (req.url === '/') {
     const moscowTime = getMoscowTime();
@@ -256,6 +316,11 @@ const server = http.createServer((req, res) => {
           <p><a href="/health">Health Check</a></p>
           <p>Время (МСК): ${moscowTime}</p>
           <p>Время (UTC): ${new Date().toISOString()}</p>
+          <h3>📅 Расписание:</h3>
+          <ul>
+            <li><strong>Ежедневный полный отчет:</strong> 19:00 МСК</li>
+            <li><strong>Ежечасные проверки:</strong> Только уведомления об ошибках</li>
+          </ul>
         </body>
       </html>
     `);
