@@ -196,7 +196,14 @@ async function monitorAllBots() {
 
 // Функция для отправки ежедневного полного отчета
 async function sendDailyReport() {
-  console.log('📅 Отправляю ежедневный полный отчет...');
+  const now = new Date();
+  const moscowHour = now.toLocaleString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    hour: '2-digit',
+    hour12: false
+  });
+  
+  console.log(`📅 Отправляю ежедневный полный отчет... (текущий час МСК: ${moscowHour})`);
   
   const { results, healthy, warnings, errors, moscowTime } = await monitorAllBots();
   
@@ -238,7 +245,15 @@ async function sendDailyReport() {
 
 // Функция для отправки уведомлений только об ошибках
 async function sendErrorNotifications() {
-  console.log('🔍 Проверяю на наличие ошибок...');
+  const now = new Date();
+  const moscowHour = now.toLocaleString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  
+  console.log(`🔍 Проверяю на наличие ошибок... (текущее время МСК: ${moscowHour})`);
   
   const { results, healthy, warnings, errors, moscowTime } = await monitorAllBots();
   
@@ -302,20 +317,45 @@ async function startMonitoring() {
   // Отправляем тестовое сообщение при запуске
   await sendTestMessage();
   
-  // Запускаем первую проверку
+  // Запускаем первую проверку (без отправки отчета)
+  console.log('🔍 Выполняю первую проверку при запуске...');
   await monitorAllBots();
+  console.log('✅ Первая проверка завершена');
   
   // Настраиваем cron для ежедневного полного отчета в 19:00 МСК
   cron.schedule(DAILY_REPORT_TIME, async () => {
-    console.log('📅 Запуск ежедневного отчета...');
+    const now = new Date();
+    const moscowTime = now.toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    console.log(`📅 Запуск ежедневного отчета по расписанию... (${moscowTime} МСК)`);
     await sendDailyReport();
   });
   
   // Настраиваем cron для ежечасных проверок (только ошибки)
   cron.schedule(HOURLY_CHECK_TIME, async () => {
-    console.log('⏰ Запуск ежечасной проверки...');
+    const now = new Date();
+    const moscowTime = now.toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    console.log(`⏰ Запуск ежечасной проверки по расписанию... (${moscowTime} МСК)`);
     await sendErrorNotifications();
   });
+  
+  console.log(`📅 Cron настроен: ежедневный отчет в ${DAILY_REPORT_TIME} (19:00 МСК)`);
+  console.log(`⏰ Cron настроен: ежечасные проверки в ${HOURLY_CHECK_TIME}`);
   
   console.log('✅ Мониторинг запущен и работает!');
   console.log('📅 Ежедневный полный отчет будет отправляться в 19:00 МСК');
