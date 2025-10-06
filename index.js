@@ -7,7 +7,7 @@ const http = require('http');
 // Конфигурация
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const DAILY_REPORT_TIME = '0 19 * * *'; // Ежедневно в 19:00 МСК
+const DAILY_REPORT_TIME = '0 16 * * *'; // Ежедневно в 19:00 МСК (16:00 UTC)
 const HOURLY_CHECK_TIME = '0 * * * *'; // Каждый час
 
 // Список ботов для мониторинга
